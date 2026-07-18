@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Luau 난독화기</title>
+    <title>Galactic Tools 초고난도 난독화기</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, sans-serif; padding: 12px; margin: 0; min-height: 100vh; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         h1 { font-size: clamp(22px, 5vw, 32px); margin: 8px 0 4px 0; color: #58a6ff; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .badge { background: #1f6feb; color: white; font-size: 12px; padding: 2px 12px; border-radius: 20px; font-weight: 600; }
+        .badge-pro { background: #da3633; color: white; font-size: 12px; padding: 2px 12px; border-radius: 20px; font-weight: 600; }
         .subtitle { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
         .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 768px) { .row { grid-template-columns: 1fr 1fr; } }
         .panel { background: #161b22; border-radius: 12px; padding: 12px; border: 1px solid #30363d; }
         .panel label { font-size: 12px; font-weight: 600; color: #8b949e; display: block; margin-bottom: 6px; }
-        textarea { width: 100%; height: 280px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-family: 'Courier New', monospace; font-size: 13px; resize: vertical; outline: none; transition: border-color 0.2s; tab-size: 4; }
+        textarea { width: 100%; height: 400px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-family: 'Courier New', monospace; font-size: 13px; resize: vertical; outline: none; transition: border-color 0.2s; tab-size: 4; }
         textarea:focus { border-color: #58a6ff; }
         textarea[readonly] { background: #0d1117; opacity: 0.9; }
         .controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
@@ -24,6 +25,8 @@
         .btn:hover { background: #2ea043; }
         .btn-secondary { background: #21262d; border: 1px solid #30363d; }
         .btn-secondary:hover { background: #30363d; }
+        .btn-danger { background: #da3633; }
+        .btn-danger:hover { background: #f85149; }
         .options { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
         .options label { font-size: 13px; color: #8b949e; display: flex; align-items: center; gap: 5px; cursor: pointer; }
         .options input[type="checkbox"] { accent-color: #58a6ff; width: 16px; height: 16px; cursor: pointer; }
@@ -33,7 +36,7 @@
         .toast.show { opacity: 1; }
         .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #484f58; }
         @media (max-width: 480px) {
-            textarea { height: 200px; font-size: 12px; padding: 8px; }
+            textarea { height: 250px; font-size: 12px; padding: 8px; }
             .btn { font-size: 13px; padding: 12px 16px; min-width: 80px; }
             .panel { padding: 8px; }
             .controls { gap: 6px; }
@@ -43,26 +46,89 @@
 <body>
 
 <div class="container">
-    <h1>🔒 Luau 난독화기 <span class="badge">v3.0</span></h1>
-    <div class="subtitle">모든 식별자 난독화 + Luraph 우회</div>
+    <h1>
+        🚀 Galactic Tools 초고난도 난독화기
+        <span class="badge-pro">v5.0 PRO</span>
+    </h1>
+    <div class="subtitle">문자열 암호화 + 변수명 난독화 + 제어흐름 평탄화 + Luraph 우회 + 데드코드 삽입</div>
 
     <div class="controls">
-        <button class="btn" id="obfuscateBtn">⚡ 난독화 실행</button>
+        <button class="btn" id="obfuscateBtn">⚡ 초고난도 난독화 실행</button>
         <button class="btn btn-secondary" id="copyBtn">📋 복사</button>
         <button class="btn btn-secondary" id="clearBtn">🗑️ 초기화</button>
         <div class="options">
             <label><input type="checkbox" id="renameCheck" checked> 변수명</label>
-            <label><input type="checkbox" id="bypassCheck" checked> 우회코드</label>
+            <label><input type="checkbox" id="stringCheck" checked> 문자열 암호화</label>
+            <label><input type="checkbox" id="flowCheck" checked> 제어흐름 평탄화</label>
+            <label><input type="checkbox" id="deadCheck" checked> 데드코드 삽입</label>
+            <label><input type="checkbox" id="bypassCheck" checked> Luraph 우회</label>
         </div>
     </div>
 
     <div class="row">
         <div class="panel">
             <label>📥 원본 코드 (Luau)</label>
-            <textarea id="inputCode" spellcheck="false">Ddd</textarea>
+            <textarea id="inputCode" spellcheck="false">local function greet(name)
+    print("Hello, " .. name .. "!")
+    return "Welcome"
+end
+
+local result = greet("Player")
+print(result)
+
+local data = {
+    x = 10,
+    y = 20,
+    sum = function(self)
+        return self.x + self.y
+    end
+}
+
+print(data:sum())
+
+local function complexMath(a, b, c)
+    local result = 0
+    for i = 1, 10 do
+        result = result + (a * i) + (b / i) - (c % i)
+        if result > 100 then
+            result = result - 50
+        elseif result < 0 then
+            result = result + 20
+        end
+    end
+    return result
+end
+
+print(complexMath(5, 3, 7))
+
+local function fibonacci(n)
+    if n <= 1 then
+        return n
+    end
+    return fibonacci(n - 1) + fibonacci(n - 2)
+end
+
+print(fibonacci(10))
+
+local function advancedOperation(x, y, z)
+    local temp = {}
+    for i = 1, x do
+        temp[i] = i * y
+        if temp[i] > z then
+            temp[i] = temp[i] - z
+        end
+    end
+    local sum = 0
+    for _, v in pairs(temp) do
+        sum = sum + v
+    end
+    return sum / #temp
+end
+
+print(advancedOperation(100, 5, 50))</textarea>
         </div>
         <div class="panel">
-            <label>📤 난독화 결과</label>
+            <label>📤 초고난도 난독화 결과</label>
             <textarea id="outputCode" readonly spellcheck="false"></textarea>
         </div>
     </div>
@@ -70,9 +136,10 @@
     <div class="stats">
         <span>📊 라인: <strong id="lineCount">0</strong></span>
         <span>📦 크기: <strong id="sizeCount">0</strong> bytes</span>
-        <span>🔀 pcall 패치: <strong style="color:#58a6ff;">✅ 적용</strong></span>
+        <span>🔀 난독화 레벨: <strong style="color:#58a6ff;">ULTIMATE</strong></span>
+        <span>🛡️ 보안 등급: <strong style="color:#f85149;">★★★★★</strong></span>
     </div>
-    <div class="footer">⚠️ Luau 전용 · 모든 식별자 난독화</div>
+    <div class="footer">⚠️ Galactic Tools PRO · 5중 난독화 · 분석 방지 · Luraph 완전 우회</div>
 </div>
 
 <div class="toast" id="toast">✅ 완료!</div>
@@ -87,110 +154,274 @@
     const sizeCountEl = document.getElementById('sizeCount');
     const toastEl = document.getElementById('toast');
 
-    // ===== Luraph 우회 코드 =====
-    const BYPASS_SNIPPET = `-- ===== Luraph Anti-Format Bypass =====
+    // ================================================================
+    // 1. Luraph 우회 코드 (강화 버전)
+    // ================================================================
+    const BYPASS_SNIPPET = `-- ===== Luraph Anti-Format Bypass v2.0 =====
 local _orig_pcall = pcall
+local _orig_error = error
+local _orig_xpcall = xpcall
+local _orig_debug = debug and debug.getinfo
+
 pcall = function(...)
     local results = {_orig_pcall(...)}
     if results[1] == false and type(results[2]) == "string" then
-        results[2] = results[2]:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 ")
+        results[2] = results[2]:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 "):gsub(":(%d+)$", ":1")
     end
     return unpack(results)
+end
+
+xpcall = function(f, err)
+    return _orig_xpcall(f, function(e)
+        if type(e) == "string" then
+            e = e:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 "):gsub(":(%d+)$", ":1")
+        end
+        return err(e)
+    end)
+end
+
+if _orig_debug then
+    debug.getinfo = function(...)
+        local info = _orig_debug(...)
+        if info and info.short_src and info.short_src:match("pcall") then
+            info.currentline = 1
+        end
+        return info
+    end
 end
 -- ===== Bypass End =====
 `;
 
-    // ===== 모든 식별자 난독화 =====
-    function obfuscateAllIdentifiers(code) {
+    // ================================================================
+    // 2. 문자열 암호화 (Galactic Tools PRO)
+    // ================================================================
+    function encryptStringPRO(str) {
+        const key = Math.floor(Math.random() * 9999999999999) + 1;
+        let encrypted = '';
+        let state = key;
+        const salt = Math.floor(Math.random() * 255) + 1;
+        
+        for (let i = 0; i < str.length; i++) {
+            state = (state * 9301 + 49297) % 233280;
+            const randomByte = Math.floor((state / 233280) * 256);
+            const charCode = str.charCodeAt(i) ^ randomByte ^ salt ^ (i * 7);
+            encrypted += String.fromCharCode(charCode);
+        }
+        
+        let escaped = '';
+        for (let i = 0; i < encrypted.length; i++) {
+            const code = encrypted.charCodeAt(i);
+            if (code < 32 || code > 126 || code === 34 || code === 39 || code === 92 || code === 10 || code === 13) {
+                escaped += '\\' + code.toString().padStart(3, '0');
+            } else {
+                escaped += encrypted[i];
+            }
+        }
+        
+        return { encrypted: escaped, key: key, salt: salt };
+    }
+
+    function encryptAllStringsPRO(code) {
+        let result = code;
+        const stringRegex = /(["'])((?:(?!\1).)*?)\1/g;
+        const matches = [];
+        let match;
+        
+        while ((match = stringRegex.exec(code)) !== null) {
+            if (match[2].length >= 2) {
+                matches.push({ full: match[0], quote: match[1], content: match[2], index: match.index });
+            }
+        }
+        
+        for (let i = matches.length - 1; i >= 0; i--) {
+            const m = matches[i];
+            const enc = encryptStringPRO(m.content);
+            const varName = '_enc' + Math.floor(Math.random() * 999999);
+            
+            const replacement = `(function() local s="${enc.encrypted}";local k=${enc.key};local a=${enc.salt};local r='';local st=k;for i=1,#s do st=(st*9301+49297)%233280;r=r..string.char((string.byte(s,i)or 0)~=math.floor((st/233280)*256)~=a~=((i-1)*7))end;return r end)()`;
+            
+            const before = result.substring(0, m.index);
+            const after = result.substring(m.index + m.full.length);
+            result = before + replacement + after;
+        }
+        
+        return result;
+    }
+
+    // ================================================================
+    // 3. 제어흐름 평탄화 (초고난도)
+    // ================================================================
+    function flattenControlFlow(code) {
+        let result = code;
+        let counter = 0;
+        
+        // for 루프 찾기
+        const forRegex = /for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^,]+)\s*,\s*([^,]+)(?:\s*,\s*([^)]+))?\s+do\s*([\s\S]*?)end/g;
+        result = result.replace(forRegex, function(match, varName, start, end, step, body) {
+            counter++;
+            const stateVar = '_state' + counter;
+            const varVar = '_var' + counter;
+            const stepVal = step || '1';
+            return `local ${stateVar}=${start};local ${varVar}=${varName};while ${varVar}<=${end} do ${body} ${varVar}=${varVar}+(${stepVal});if ${varVar}>${end} then break end end`;
+        });
+        
+        // if-elseif-else 블록 평탄화
+        const ifRegex = /if\s+([^\n]+?)\s+then\s*([\s\S]*?)(?:elseif\s+([^\n]+?)\s+then\s*([\s\S]*?))*(?:else\s*([\s\S]*?))?end/g;
+        result = result.replace(ifRegex, function(match, cond1, body1, ...rest) {
+            counter++;
+            const condVar = '_cond' + counter;
+            let output = `local ${condVar}=false\n`;
+            output += `if ${cond1} then\n${body1}\n${condVar}=true\nend\n`;
+            
+            // elseif 처리
+            const args = Array.from(arguments);
+            const restParts = args.slice(4, -1);
+            for (let i = 0; i < restParts.length; i += 2) {
+                const cond = restParts[i];
+                const body = restParts[i + 1];
+                if (cond && body) {
+                    output += `if not ${condVar} and ${cond} then\n${body}\n${condVar}=true\nend\n`;
+                }
+            }
+            
+            // else 처리
+            const elseBody = restParts[restParts.length - 1];
+            if (elseBody && elseBody.trim()) {
+                output += `if not ${condVar} then\n${elseBody}\nend\n`;
+            }
+            
+            return output;
+        });
+        
+        return result;
+    }
+
+    // ================================================================
+    // 4. 데드코드 삽입 (초고난도)
+    // ================================================================
+    function insertDeadCode(code) {
+        let result = code;
+        const lines = result.split('\n');
+        const newLines = [];
+        let counter = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            newLines.push(line);
+            
+            // 30% 확률로 데드코드 삽입
+            if (Math.random() < 0.3 && line.trim() !== '' && !line.trim():match(/^--/)) {
+                const deadVars = ['_dead', '_unused', '_temp', '_garbage', '_junk'];
+                const deadVar = deadVars[Math.floor(Math.random() * deadVars.length)] + counter;
+                counter++;
+                
+                const deadTypes = [
+                    `local ${deadVar}=${Math.floor(Math.random() * 9999)}`,
+                    `local ${deadVar}="${String.fromCharCode(Math.floor(Math.random() * 26) + 97)}"`,
+                    `local ${deadVar}=function() return ${Math.floor(Math.random() * 999)} end`,
+                    `local ${deadVar}={${Math.floor(Math.random() * 100)},${Math.floor(Math.random() * 100)}}`,
+                    `local ${deadVar}=math.random(1,${Math.floor(Math.random() * 999)})`,
+                    `local ${deadVar}=string.char(${Math.floor(Math.random() * 26) + 65})`,
+                    `local ${deadVar}=#{} + ${Math.floor(Math.random() * 50)}`,
+                    `local ${deadVar}=not false and ${Math.floor(Math.random() * 100)} or 0`
+                ];
+                
+                const deadCode = deadTypes[Math.floor(Math.random() * deadTypes.length)];
+                newLines.push('    ' + deadCode + ' -- dead code');
+                
+                // 가짜 if문 추가
+                if (Math.random() < 0.5) {
+                    const fakeCond = Math.random() < 0.5 ? 'true' : 'false';
+                    newLines.push(`    if ${fakeCond} then`);
+                    newLines.push(`        local _fake${counter}=${Math.floor(Math.random() * 999)}`);
+                    newLines.push(`    end`);
+                }
+            }
+        }
+        
+        return newLines.join('\n');
+    }
+
+    // ================================================================
+    // 5. 변수명 난독화 (Galactic Tools ULTIMATE)
+    // ================================================================
+    function obfuscateNamesULTIMATE(code) {
         let counter = 0;
         const varMap = {};
         
-        // 보호할 키워드 (Luau 예약어 + 내장 함수)
         const reserved = new Set([
-            '_orig_pcall', 'pcall', 'unpack', 'print', 'type', 'string', 
-            'table', 'math', 'self', 'true', 'false', 'nil', 'and', 'or', 
-            'not', 'function', 'local', 'return', 'if', 'then', 'else', 
-            'elseif', 'for', 'while', 'do', 'end', 'in', 'break', 'continue', 
+            '_orig_pcall', 'pcall', 'unpack', 'print', 'type', 'string',
+            'table', 'math', 'self', 'true', 'false', 'nil', 'and', 'or',
+            'not', 'function', 'local', 'return', 'if', 'then', 'else',
+            'elseif', 'for', 'while', 'do', 'end', 'in', 'break', 'continue',
             'goto', 'repeat', 'until', 'require', 'loadstring', 'select',
-            'next', 'pairs', 'ipairs', 'assert', 'error', 'tonumber', 
-            'tostring', 'setmetatable', 'getmetatable', 'rawget', 'rawset'
+            'next', 'pairs', 'ipairs', 'assert', 'error', 'tonumber',
+            'tostring', 'setmetatable', 'getmetatable', 'rawget', 'rawset',
+            'game', 'HttpGet', 'HttpGetAsync', 'spawn', 'wait', 'task',
+            'Vector3', 'Instance', 'CFrame', 'Color3', 'BrickColor',
+            'workspace', 'script', 'coroutine', 'debug', 'io', 'os',
+            'package', 'utf8', 'bit32', 'xpcall', 'mathFloor', 'mathRandom',
+            'tableRemove', 'stringChar', 'stateJ', 'stateP', 'charTable',
+            'lookupTable', 'shufflePool', 'streamBuffer', 'getStreamValue'
         ]);
 
-        // 1. 모든 식별자 찾기 (local 선언, 함수명, 변수명)
-        // local var, function name, var = 등
         const patterns = [
-            // local varName
             { regex: /\blocal\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, group: 1 },
-            // function name
             { regex: /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, group: 1 },
-            // varName = (할당)
-            { regex: /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, group: 1 },
-            // 변수 사용 (단독)
+            { regex: /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*[=:]/g, group: 1 },
             { regex: /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)(?![.\w])/g, group: 1 }
         ];
 
-        // 2. 모든 식별자 수집
         const allIdentifiers = new Set();
         for (const pattern of patterns) {
-            let match;
+            let m;
             const regex = new RegExp(pattern.regex.source, 'g');
-            while ((match = regex.exec(code)) !== null) {
-                const name = match[pattern.group];
-                if (name && !reserved.has(name) && !/^\d/.test(name)) {
+            while ((m = regex.exec(code)) !== null) {
+                const name = m[pattern.group];
+                if (name && !reserved.has(name) && !/^\d/.test(name) && name.length > 1) {
                     allIdentifiers.add(name);
                 }
             }
         }
 
-        // 3. 각 식별자에 새 이름 할당
+        // Galactic Tools 스타일: _0x + 16진수 (길게)
         for (const name of allIdentifiers) {
             if (!varMap[name]) {
                 let newName;
                 do {
                     counter++;
-                    newName = '_0x' + counter.toString(16).toUpperCase();
+                    const hex = counter.toString(16).toUpperCase().padStart(4, '0');
+                    newName = '_0x' + hex;
                 } while (Object.values(varMap).includes(newName) || reserved.has(newName));
                 varMap[name] = newName;
             }
         }
 
-        // 4. 코드에서 식별자 치환 (문자열/주석은 건드리지 않음)
         let result = code;
         
-        // 큰따옴표 문자열 안 건너뛰기
         const stringRegex = /(["'])(?:(?!\1).)*?\1/g;
-        const stringMatches = [];
-        let tempResult = result;
-        
-        // 문자열을 임시 토큰으로 대체
-        let tokenCounter = 0;
         const tokenMap = {};
-        tempResult = tempResult.replace(stringRegex, (match) => {
-            const token = `___STR${tokenCounter}___`;
+        let tokenCounter = 0;
+        let tempResult = result.replace(stringRegex, (match) => {
+            const token = `___STR${tokenCounter++}___`;
             tokenMap[token] = match;
-            tokenCounter++;
             return token;
         });
 
-        // 주석 제거 (임시)
-        const commentRegex = /--.*$/gm;
+        const commentRegex = /--\[\[[\s\S]*?\]\]|--.*$/gm;
         const commentMap = {};
         tokenCounter = 0;
         tempResult = tempResult.replace(commentRegex, (match) => {
-            const token = `___CMT${tokenCounter}___`;
+            const token = `___CMT${tokenCounter++}___`;
             commentMap[token] = match;
-            tokenCounter++;
             return token;
         });
 
-        // 식별자 치환
         for (const [oldName, newName] of Object.entries(varMap)) {
-            // 단어 경계로 치환 (부분 문자열 방지)
             const regex = new RegExp('\\b' + oldName + '\\b', 'g');
             tempResult = tempResult.replace(regex, newName);
         }
 
-        // 토큰 복원
         for (const [token, value] of Object.entries(tokenMap)) {
             tempResult = tempResult.replace(token, value);
         }
@@ -201,7 +432,9 @@ end
         return tempResult;
     }
 
-    // ===== 통계 업데이트 =====
+    // ================================================================
+    // 6. 통계 업데이트
+    // ================================================================
     function updateStats(code) {
         const lines = code.split('\n').length;
         const size = new Blob([code]).size;
@@ -209,7 +442,9 @@ end
         sizeCountEl.textContent = size.toLocaleString();
     }
 
-    // ===== 토스트 =====
+    // ================================================================
+    // 7. 토스트 메시지
+    // ================================================================
     function showToast(msg) {
         toastEl.textContent = msg || '✅ 완료!';
         toastEl.classList.add('show');
@@ -217,7 +452,9 @@ end
         toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2000);
     }
 
-    // ===== 메인 난독화 =====
+    // ================================================================
+    // 8. 메인 난독화 함수 (ULTIMATE)
+    // ================================================================
     function obfuscate() {
         const input = inputEl.value;
         if (!input.trim()) {
@@ -228,19 +465,39 @@ end
         try {
             let output = input;
 
-            // 1. 모든 식별자 난독화
-            if (document.getElementById('renameCheck').checked) {
-                output = obfuscateAllIdentifiers(output);
+            // 1. 문자열 암호화
+            if (document.getElementById('stringCheck').checked) {
+                output = encryptAllStringsPRO(output);
+                showToast('🔐 문자열 암호화 완료...');
             }
 
-            // 2. Luraph 우회 코드 삽입
+            // 2. 제어흐름 평탄화
+            if (document.getElementById('flowCheck').checked) {
+                output = flattenControlFlow(output);
+                showToast('🌀 제어흐름 평탄화 완료...');
+            }
+
+            // 3. 데드코드 삽입
+            if (document.getElementById('deadCheck').checked) {
+                output = insertDeadCode(output);
+                showToast('💀 데드코드 삽입 완료...');
+            }
+
+            // 4. 변수명 난독화
+            if (document.getElementById('renameCheck').checked) {
+                output = obfuscateNamesULTIMATE(output);
+                showToast('🏷️ 변수명 난독화 완료...');
+            }
+
+            // 5. Luraph 우회 코드 (맨 위에)
             if (document.getElementById('bypassCheck').checked) {
-                output = BYPASS_SNIPPET + '\n' + output;
+                output = BYPASS_SNIPPET + '\n\n' + output;
+                showToast('🛡️ Luraph 우회 코드 삽입 완료...');
             }
 
             outputEl.value = output;
             updateStats(output);
-            showToast('✅ 난독화 완료!');
+            showToast('✅ 초고난도 난독화 완료! (ULTIMATE 레벨)');
 
         } catch (e) {
             showToast('❌ 에러: ' + e.message);
@@ -248,7 +505,9 @@ end
         }
     }
 
-    // ===== 복사 =====
+    // ================================================================
+    // 9. 복사
+    // ================================================================
     function copyOutput() {
         const text = outputEl.value;
         if (!text) {
@@ -278,19 +537,25 @@ end
         outputEl.setSelectionRange(0, 0);
     }
 
-    // ===== 초기화 =====
+    // ================================================================
+    // 10. 초기화
+    // ================================================================
     function clearAll() {
         outputEl.value = '';
         updateStats('');
         showToast('🗑️ 초기화됨');
     }
 
-    // ===== 이벤트 =====
+    // ================================================================
+    // 11. 이벤트 바인딩
+    // ================================================================
     document.getElementById('obfuscateBtn').addEventListener('click', obfuscate);
     document.getElementById('copyBtn').addEventListener('click', copyOutput);
     document.getElementById('clearBtn').addEventListener('click', clearAll);
 
-    // ===== 첫 실행 =====
+    // ================================================================
+    // 12. 초기 실행
+    // ================================================================
     setTimeout(() => {
         obfuscate();
     }, 100);
@@ -299,160 +564,6 @@ end
         updateStats(inputEl.value);
     });
 
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
-            obfuscate();
-        }
-    });
-
-})();
-</script>
-
-</body>
-</html>local _orig_pcall = pcall
-pcall = function(...)
-    local results = {_orig_pcall(...)}
-    if results[1] == false and type(results[2]) == "string" then
-        results[2] = results[2]:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 ")
-    end
-    return unpack(results)
-end
--- ===== Bypass End =====
-`;
-
-    // ===== 변수명 난독화 (정규식 기반) =====
-    function obfuscateVariables(code) {
-        let counter = 0;
-        const varMap = {};
-        const reserved = new Set(['_orig_pcall', 'pcall', 'unpack', 'print', 'type', 'string', 'table', 'math', 'self', 'true', 'false', 'nil', 'and', 'or', 'not', 'function', 'local', 'return', 'if', 'then', 'else', 'elseif', 'for', 'while', 'do', 'end', 'in', 'break', 'continue', 'goto']);
-
-        // 1. 로컬 변수 선언 찾기: local var1, var2 = ...
-        const localRegex = /\blocal\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-        let match;
-        while ((match = localRegex.exec(code)) !== null) {
-            const name = match[1];
-            if (!reserved.has(name) && !varMap[name]) {
-                let newName;
-                do {
-                    counter++;
-                    newName = '_0x' + counter.toString(16).toUpperCase();
-                } while (reserved.has(newName) || Object.values(varMap).includes(newName));
-                varMap[name] = newName;
-            }
-        }
-
-        // 2. 변수 이름 치환 (단, 문자열/주석은 건드리지 않음)
-        let result = code;
-        for (const [oldName, newName] of Object.entries(varMap)) {
-            // \b = 단어 경계, 문자열 안은 건드리지 않음
-            const regex = new RegExp('\\b' + oldName + '\\b', 'g');
-            result = result.replace(regex, newName);
-        }
-
-        return result;
-    }
-
-    // ===== 통계 업데이트 =====
-    function updateStats(code) {
-        const lines = code.split('\n').length;
-        const size = new Blob([code]).size;
-        lineCountEl.textContent = lines;
-        sizeCountEl.textContent = size.toLocaleString();
-    }
-
-    // ===== 토스트 =====
-    function showToast(msg) {
-        toastEl.textContent = msg || '✅ 완료!';
-        toastEl.classList.add('show');
-        clearTimeout(toastEl._timer);
-        toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2000);
-    }
-
-    // ===== 메인 난독화 =====
-    function obfuscate() {
-        const input = inputEl.value;
-        if (!input.trim()) {
-            showToast('⚠️ 코드를 입력해주세요!');
-            return;
-        }
-
-        try {
-            let output = input;
-
-            // 1. 변수명 난독화
-            if (document.getElementById('renameCheck').checked) {
-                output = obfuscateVariables(output);
-            }
-
-            // 2. Luraph 우회 코드 삽입
-            if (document.getElementById('bypassCheck').checked) {
-                output = BYPASS_SNIPPET + '\n' + output;
-            }
-
-            outputEl.value = output;
-            updateStats(output);
-            showToast('✅ 난독화 완료!');
-
-        } catch (e) {
-            showToast('❌ 에러: ' + e.message);
-            console.error(e);
-        }
-    }
-
-    // ===== 복사 =====
-    function copyOutput() {
-        const text = outputEl.value;
-        if (!text) {
-            showToast('⚠️ 난독화된 코드가 없습니다!');
-            return;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('📋 복사 완료!');
-            }).catch(() => {
-                fallbackCopy(text);
-            });
-        } else {
-            fallbackCopy(text);
-        }
-    }
-
-    function fallbackCopy(text) {
-        outputEl.select();
-        outputEl.setSelectionRange(0, 99999);
-        try {
-            document.execCommand('copy');
-            showToast('📋 복사 완료!');
-        } catch (e) {
-            showToast('❌ 복사 실패');
-        }
-        outputEl.setSelectionRange(0, 0);
-    }
-
-    // ===== 초기화 =====
-    function clearAll() {
-        outputEl.value = '';
-        updateStats('');
-        showToast('🗑️ 초기화됨');
-    }
-
-    // ===== 이벤트 =====
-    document.getElementById('obfuscateBtn').addEventListener('click', obfuscate);
-    document.getElementById('copyBtn').addEventListener('click', copyOutput);
-    document.getElementById('clearBtn').addEventListener('click', clearAll);
-
-    // ===== 첫 실행 =====
-    setTimeout(() => {
-        obfuscate();
-    }, 100);
-
-    // 입력 변경 시 통계 업데이트
-    inputEl.addEventListener('input', () => {
-        updateStats(inputEl.value);
-    });
-
-    // Ctrl+Enter 단축키
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
