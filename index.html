@@ -43,8 +43,8 @@
 <body>
 
 <div class="container">
-    <h1>🔒 Luau 난독화기 <span class="badge">v2.0</span></h1>
-    <div class="subtitle">정규식 기반 · CDN 필요 없음 · Luraph 우회 포함</div>
+    <h1>🔒 Luau 난독화기 <span class="badge">v3.0</span></h1>
+    <div class="subtitle">모든 식별자 난독화 + Luraph 우회</div>
 
     <div class="controls">
         <button class="btn" id="obfuscateBtn">⚡ 난독화 실행</button>
@@ -59,23 +59,7 @@
     <div class="row">
         <div class="panel">
             <label>📥 원본 코드 (Luau)</label>
-            <textarea id="inputCode" spellcheck="false">local function greet(name)
-    print("Hello, " .. name .. "!")
-    return "Welcome"
-end
-
-local result = greet("Player")
-print(result)
-
-local data = {
-    x = 10,
-    y = 20,
-    sum = function(self)
-        return self.x + self.y
-    end
-}
-
-print(data:sum())</textarea>
+            <textarea id="inputCode" spellcheck="false">Ddd</textarea>
         </div>
         <div class="panel">
             <label>📤 난독화 결과</label>
@@ -88,7 +72,7 @@ print(data:sum())</textarea>
         <span>📦 크기: <strong id="sizeCount">0</strong> bytes</span>
         <span>🔀 pcall 패치: <strong style="color:#58a6ff;">✅ 적용</strong></span>
     </div>
-    <div class="footer">⚠️ Luau 전용 · pcall 오버라이드로 Luraph 우회</div>
+    <div class="footer">⚠️ Luau 전용 · 모든 식별자 난독화</div>
 </div>
 
 <div class="toast" id="toast">✅ 완료!</div>
@@ -106,6 +90,227 @@ print(data:sum())</textarea>
     // ===== Luraph 우회 코드 =====
     const BYPASS_SNIPPET = `-- ===== Luraph Anti-Format Bypass =====
 local _orig_pcall = pcall
+pcall = function(...)
+    local results = {_orig_pcall(...)}
+    if results[1] == false and type(results[2]) == "string" then
+        results[2] = results[2]:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 ")
+    end
+    return unpack(results)
+end
+-- ===== Bypass End =====
+`;
+
+    // ===== 모든 식별자 난독화 =====
+    function obfuscateAllIdentifiers(code) {
+        let counter = 0;
+        const varMap = {};
+        
+        // 보호할 키워드 (Luau 예약어 + 내장 함수)
+        const reserved = new Set([
+            '_orig_pcall', 'pcall', 'unpack', 'print', 'type', 'string', 
+            'table', 'math', 'self', 'true', 'false', 'nil', 'and', 'or', 
+            'not', 'function', 'local', 'return', 'if', 'then', 'else', 
+            'elseif', 'for', 'while', 'do', 'end', 'in', 'break', 'continue', 
+            'goto', 'repeat', 'until', 'require', 'loadstring', 'select',
+            'next', 'pairs', 'ipairs', 'assert', 'error', 'tonumber', 
+            'tostring', 'setmetatable', 'getmetatable', 'rawget', 'rawset'
+        ]);
+
+        // 1. 모든 식별자 찾기 (local 선언, 함수명, 변수명)
+        // local var, function name, var = 등
+        const patterns = [
+            // local varName
+            { regex: /\blocal\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, group: 1 },
+            // function name
+            { regex: /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, group: 1 },
+            // varName = (할당)
+            { regex: /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, group: 1 },
+            // 변수 사용 (단독)
+            { regex: /(?<![.\w])([a-zA-Z_][a-zA-Z0-9_]*)(?![.\w])/g, group: 1 }
+        ];
+
+        // 2. 모든 식별자 수집
+        const allIdentifiers = new Set();
+        for (const pattern of patterns) {
+            let match;
+            const regex = new RegExp(pattern.regex.source, 'g');
+            while ((match = regex.exec(code)) !== null) {
+                const name = match[pattern.group];
+                if (name && !reserved.has(name) && !/^\d/.test(name)) {
+                    allIdentifiers.add(name);
+                }
+            }
+        }
+
+        // 3. 각 식별자에 새 이름 할당
+        for (const name of allIdentifiers) {
+            if (!varMap[name]) {
+                let newName;
+                do {
+                    counter++;
+                    newName = '_0x' + counter.toString(16).toUpperCase();
+                } while (Object.values(varMap).includes(newName) || reserved.has(newName));
+                varMap[name] = newName;
+            }
+        }
+
+        // 4. 코드에서 식별자 치환 (문자열/주석은 건드리지 않음)
+        let result = code;
+        
+        // 큰따옴표 문자열 안 건너뛰기
+        const stringRegex = /(["'])(?:(?!\1).)*?\1/g;
+        const stringMatches = [];
+        let tempResult = result;
+        
+        // 문자열을 임시 토큰으로 대체
+        let tokenCounter = 0;
+        const tokenMap = {};
+        tempResult = tempResult.replace(stringRegex, (match) => {
+            const token = `___STR${tokenCounter}___`;
+            tokenMap[token] = match;
+            tokenCounter++;
+            return token;
+        });
+
+        // 주석 제거 (임시)
+        const commentRegex = /--.*$/gm;
+        const commentMap = {};
+        tokenCounter = 0;
+        tempResult = tempResult.replace(commentRegex, (match) => {
+            const token = `___CMT${tokenCounter}___`;
+            commentMap[token] = match;
+            tokenCounter++;
+            return token;
+        });
+
+        // 식별자 치환
+        for (const [oldName, newName] of Object.entries(varMap)) {
+            // 단어 경계로 치환 (부분 문자열 방지)
+            const regex = new RegExp('\\b' + oldName + '\\b', 'g');
+            tempResult = tempResult.replace(regex, newName);
+        }
+
+        // 토큰 복원
+        for (const [token, value] of Object.entries(tokenMap)) {
+            tempResult = tempResult.replace(token, value);
+        }
+        for (const [token, value] of Object.entries(commentMap)) {
+            tempResult = tempResult.replace(token, value);
+        }
+
+        return tempResult;
+    }
+
+    // ===== 통계 업데이트 =====
+    function updateStats(code) {
+        const lines = code.split('\n').length;
+        const size = new Blob([code]).size;
+        lineCountEl.textContent = lines;
+        sizeCountEl.textContent = size.toLocaleString();
+    }
+
+    // ===== 토스트 =====
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 완료!';
+        toastEl.classList.add('show');
+        clearTimeout(toastEl._timer);
+        toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+    }
+
+    // ===== 메인 난독화 =====
+    function obfuscate() {
+        const input = inputEl.value;
+        if (!input.trim()) {
+            showToast('⚠️ 코드를 입력해주세요!');
+            return;
+        }
+
+        try {
+            let output = input;
+
+            // 1. 모든 식별자 난독화
+            if (document.getElementById('renameCheck').checked) {
+                output = obfuscateAllIdentifiers(output);
+            }
+
+            // 2. Luraph 우회 코드 삽입
+            if (document.getElementById('bypassCheck').checked) {
+                output = BYPASS_SNIPPET + '\n' + output;
+            }
+
+            outputEl.value = output;
+            updateStats(output);
+            showToast('✅ 난독화 완료!');
+
+        } catch (e) {
+            showToast('❌ 에러: ' + e.message);
+            console.error(e);
+        }
+    }
+
+    // ===== 복사 =====
+    function copyOutput() {
+        const text = outputEl.value;
+        if (!text) {
+            showToast('⚠️ 난독화된 코드가 없습니다!');
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 복사 완료!');
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        outputEl.select();
+        outputEl.setSelectionRange(0, 99999);
+        try {
+            document.execCommand('copy');
+            showToast('📋 복사 완료!');
+        } catch (e) {
+            showToast('❌ 복사 실패');
+        }
+        outputEl.setSelectionRange(0, 0);
+    }
+
+    // ===== 초기화 =====
+    function clearAll() {
+        outputEl.value = '';
+        updateStats('');
+        showToast('🗑️ 초기화됨');
+    }
+
+    // ===== 이벤트 =====
+    document.getElementById('obfuscateBtn').addEventListener('click', obfuscate);
+    document.getElementById('copyBtn').addEventListener('click', copyOutput);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+    // ===== 첫 실행 =====
+    setTimeout(() => {
+        obfuscate();
+    }, 100);
+
+    inputEl.addEventListener('input', () => {
+        updateStats(inputEl.value);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            obfuscate();
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>local _orig_pcall = pcall
 pcall = function(...)
     local results = {_orig_pcall(...)}
     if results[1] == false and type(results[2]) == "string" then
