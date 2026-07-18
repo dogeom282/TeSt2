@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Luau 난독화기</title>
+    <script src="https://cdn.jsdelivr.net/npm/luaparse@0.3.1/dist/luaparse.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 12px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: clamp(22px, 5vw, 32px);
+            margin: 8px 0 4px 0;
+            color: #58a6ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #1f6feb;
+            color: white;
+            font-size: 12px;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .subtitle {
+            color: #8b949e;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 768px) {
+            .row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .panel {
+            background: #161b22;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #30363d;
+        }
+        .panel label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 6px;
+        }
+        textarea {
+            width: 100%;
+            height: 280px;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+            tab-size: 4;
+        }
+        textarea:focus {
+            border-color: #58a6ff;
+        }
+        textarea[readonly] {
+            background: #0d1117;
+            opacity: 0.9;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+            align-items: center;
+        }
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            touch-action: manipulation;
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn:hover {
+            background: #2ea043;
+        }
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        .btn-danger {
+            background: #da3633;
+        }
+        .btn-danger:hover {
+            background: #f85149;
+        }
+        .options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .options label {
+            font-size: 13px;
+            color: #8b949e;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .options input[type="checkbox"] {
+            accent-color: #58a6ff;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: #0d1117;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 12px;
+        }
+        .stats span strong {
+            color: #c9d1d9;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 999;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .footer {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 11px;
+            color: #484f58;
+        }
+        @media (max-width: 480px) {
+            textarea {
+                height: 200px;
+                font-size: 12px;
+                padding: 8px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 12px 16px;
+                min-width: 80px;
+            }
+            .panel {
+                padding: 8px;
+            }
+            .controls {
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        🔒 Luau 난독화기
+        <span class="badge">v1.0</span>
+    </h1>
+    <div class="subtitle">Luau 코드 난독화 + Luraph anti-format 우회 삽입</div>
+
+    <div class="controls">
+        <button class="btn" id="obfuscateBtn">⚡ 난독화 실행</button>
+        <button class="btn btn-secondary" id="copyBtn">📋 복사</button>
+        <button class="btn btn-secondary" id="clearBtn">🗑️ 초기화</button>
+        <div class="options">
+            <label><input type="checkbox" id="minifyCheck" checked> 압축</label>
+            <label><input type="checkbox" id="renameCheck" checked> 변수명</label>
+            <label><input type="checkbox" id="bypassCheck" checked> 우회코드</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel">
+            <label>📥 원본 코드 (Luau)</label>
+            <textarea id="inputCode" spellcheck="false">local function greet(name)
+    print("Hello, " .. name .. "!")
+    return "Welcome"
+end
+
+local result = greet("Player")
+print(result)
+
+-- Luau 테이블 예제
+local data = {
+    x = 10,
+    y = 20,
+    sum = function(self)
+        return self.x + self.y
+    end
+}
+
+print(data:sum())</textarea>
+        </div>
+        <div class="panel">
+            <label>📤 난독화 결과</label>
+            <textarea id="outputCode" readonly spellcheck="false"></textarea>
+        </div>
+    </div>
+
+    <div class="stats">
+        <span>📊 라인: <strong id="lineCount">0</strong></span>
+        <span>📦 크기: <strong id="sizeCount">0</strong> bytes</span>
+        <span>🔀 pcall 패치: <strong style="color:#58a6ff;">✅ 적용</strong></span>
+        <span style="margin-left:auto;">⚡ Luau 최적화</span>
+    </div>
+    <div class="footer">
+        ⚠️ Luau 전용 난독화기 · pcall 오버라이드로 Luraph 우회
+    </div>
+</div>
+
+<div class="toast" id="toast">✅ 복사 완료!</div>
+
+<script>
+(function() {
+    'use strict';
+
+    const inputEl = document.getElementById('inputCode');
+    const outputEl = document.getElementById('outputCode');
+    const lineCountEl = document.getElementById('lineCount');
+    const sizeCountEl = document.getElementById('sizeCount');
+    const toastEl = document.getElementById('toast');
+
+    // ===== Luraph 우회 코드 =====
+    const BYPASS_SNIPPET = `-- ===== Luraph Anti-Format Bypass =====
+local _orig_pcall = pcall
+pcall = function(...)
+    local results = {_orig_pcall(...)}
+    if results[1] == false and type(results[2]) == "string" then
+        results[2] = results[2]:gsub(":(%d+):", ":1:"):gsub(":(%d+)%s", ":1 ")
+    end
+    return unpack(results)
+end
+-- ===== Bypass End =====
+`;
+
+    // ===== 변수명 난독화 =====
+    function mangleVariables(ast) {
+        let counter = 0;
+        const varMap = {};
+        const reserved = new Set(['_orig_pcall', 'pcall', 'unpack', 'print', 'type', 'string', 'table', 'math']);
+
+        function traverse(node, callback) {
+            callback(node);
+            if (node && typeof node === 'object') {
+                for (let key in node) {
+                    if (Array.isArray(node[key])) {
+                        for (let child of node[key]) {
+                            if (child && typeof child === 'object') traverse(child, callback);
+                        }
+                    } else if (node[key] && typeof node[key] === 'object') {
+                        traverse(node[key], callback);
+                    }
+                }
+            }
+        }
+
+        // 1. 로컬 변수 선언 수집
+        traverse(ast, (node) => {
+            if (node.type === 'LocalStatement') {
+                for (let v of node.variables) {
+                    if (v.type === 'Identifier' && v.name && !reserved.has(v.name)) {
+                        let newName;
+                        do {
+                            counter++;
+                            newName = '_0x' + counter.toString(16).toUpperCase();
+                        } while (varMap.hasOwnProperty(v.name) || reserved.has(newName));
+                        varMap[v.name] = newName;
+                        v.name = newName;
+                    }
+                }
+            }
+        });
+
+        // 2. 식별자 치환
+        traverse(ast, (node) => {
+            if (node.type === 'Identifier' && node.name && varMap.hasOwnProperty(node.name)) {
+                node.name = varMap[node.name];
+            }
+        });
+
+        return ast;
+    }
+
+    // ===== 코드 압축 (공백 제거) =====
+    function minifyCode(code) {
+        return code
+            .replace(/\n\s*\n/g, '\n')        // 빈 줄 제거
+            .replace(/^[ \t]+/gm, '')          // 앞 공백 제거
+            .replace(/\n\s*/g, '\n')           // 줄 끝 공백 제거
+            .replace(/ +/g, ' ')               // 연속 공백 -> 1개
+            .trim();
+    }
+
+    // ===== 통계 업데이트 =====
+    function updateStats(code) {
+        const lines = code.split('\n').length;
+        const size = new Blob([code]).size;
+        lineCountEl.textContent = lines;
+        sizeCountEl.textContent = size.toLocaleString();
+    }
+
+    // ===== 토스트 메시지 =====
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 완료!';
+        toastEl.classList.add('show');
+        clearTimeout(toastEl._timer);
+        toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+    }
+
+    // ===== 메인 난독화 함수 =====
+    function obfuscate() {
+        const input = inputEl.value;
+        if (!input.trim()) {
+            showToast('⚠️ 코드를 입력해주세요!');
+            return;
+        }
+
+        try {
+            // 1. AST 파싱 (Luau 호환)
+            const ast = luaparse.parse(input, {
+                comments: false,
+                scope: false,
+                locations: false
+            });
+
+            // 2. 변수명 난독화
+            if (document.getElementById('renameCheck').checked) {
+                mangleVariables(ast);
+            }
+
+            // 3. 코드 생성
+            let output = luaparse.generate(ast);
+
+            // 4. Luraph 우회 코드 삽입
+            if (document.getElementById('bypassCheck').checked) {
+                output = BYPASS_SNIPPET + '\n' + output;
+            }
+
+            // 5. 압축
+            if (document.getElementById('minifyCheck').checked) {
+                output = minifyCode(output);
+            }
+
+            outputEl.value = output;
+            updateStats(output);
+            showToast('✅ 난독화 완료!');
+
+        } catch (e) {
+            showToast('❌ 에러: ' + e.message);
+            console.error(e);
+        }
+    }
+
+    // ===== 복사 =====
+    function copyOutput() {
+        const text = outputEl.value;
+        if (!text) {
+            showToast('⚠️ 난독화된 코드가 없습니다!');
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 복사 완료!');
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        outputEl.select();
+        outputEl.setSelectionRange(0, 99999);
+        try {
+            document.execCommand('copy');
+            showToast('📋 복사 완료!');
+        } catch (e) {
+            showToast('❌ 복사 실패');
+        }
+        outputEl.setSelectionRange(0, 0);
+    }
+
+    // ===== 초기화 =====
+    function clearAll() {
+        outputEl.value = '';
+        updateStats('');
+        showToast('🗑️ 초기화됨');
+    }
+
+    // ===== 예제 로드 =====
+    function loadExample() {
+        if (!inputEl.value.trim()) {
+            inputEl.value = `local function greet(name)
+    print("Hello, " .. name .. "!")
+    return "Welcome"
+end
+
+local result = greet("Player")
+print(result)
+
+local data = {
+    x = 10,
+    y = 20,
+    sum = function(self)
+        return self.x + self.y
+    end
+}
+
+print(data:sum())`;
+        }
+    }
+
+    // ===== 이벤트 바인딩 =====
+    document.getElementById('obfuscateBtn').addEventListener('click', obfuscate);
+    document.getElementById('copyBtn').addEventListener('click', copyOutput);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+    // ===== 초기 실행 =====
+    loadExample();
+    // 예제 코드 자동 난독화 (첫 실행)
+    setTimeout(() => {
+        obfuscate();
+    }, 100);
+
+    // 입력 변경 시 통계 업데이트
+    inputEl.addEventListener('input', () => {
+        updateStats(inputEl.value);
+    });
+
+    // 엔터키 단축키 (Ctrl+Enter)
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            obfuscate();
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>
